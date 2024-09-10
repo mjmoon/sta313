@@ -1,0 +1,37 @@
+---
+title: "Tutorial 2"
+author: "STA313"
+date: "2024-09-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## British casualties in the Crimean war
+
+```{r crimean-war}
+# loading data
+casualties <- read_csv("data/nigthingale.csv")
+# create your visualization here
+# you can save your plot by calling ggplot() after generatin each plot
+```
+
+> Data retrieved from `HistData` package as shown below.
+```
+Nightingale |>
+  select(Date, Wounds, Disease, Other, Army) |>
+  mutate(Date = paste(
+    str_pad(month(Date), 2, pad = "0"), year(Date), sep = "/")) |>
+  write_csv("data/nigthingale.csv")
+```
+
+## Star Wars characters (optional)
+
+```{r starwars}
+starwars # contains the dataset
+# create your visualization here
+# you can save your plot by calling ggplot() after generatin each plot
+```
