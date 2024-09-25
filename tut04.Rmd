@@ -18,62 +18,6 @@ for (p in packages) {
 }
 ```
 
-# Exercises
-
-
-
-```{r}
-# start by getting the subset of data you wish to focus on
-human <- starwars |>
-  filter(species == "Human") |>
-  select(name, skin_color, hair_color, gender)
-# films and starships are nested columns and requires "unnest"ing
-film_and_ships <- starwars |>
-  select(name, films, starships) |>
-  unnest(films, keep_empty = TRUE) |>
-  unnest(starships, keep_empty = TRUE)
-film_year <- data.frame(
-  films = film_and_ships |> distinct(films),
-  year = c(1980, 2005, 1983, 1977, 2015, 2002, 1999)
-)
-starwars_ex <- human |>
-  left_join(film_and_ships, by = "name") |>
-  left_join(film_year, by = "films") |>
-  mutate(
-    skin_color = fct_relevel(
-      skin_color, c("pale", "light", "white", "fair", "tan", "dark"))
-  )
-glimpse(starwars_ex)
-```
-
-## Exercise 1
-
-> Suppose you want to display how the proportion of feminine human characters have changed over the years. Decide on how you would summarize the data and create a plot with appropriate design. 
-
-```{r}
-
-```
-
-## Exercise 2
-
-> You notice feminine human characters are rarely on a starship in the earlier movies and you want to display gender, movie, and whether they were on a starship on a single plot.
-Construct a plot with appropriate legends. You can refer to the plot on the right or come up with your own design.
-
-```{r}
-
-```
-
-## Exericse 3
-
-> Arrange the plots from Exercise 1, Exercise 2, and/or any other plots together to come up with a coherent insight about how gender diversity has evolved (or not evolved) in Starwars movies.
-Use appropriate title, annotations, etc. as desired.
-
-```{r}
-
-# save the resulting plot; adjust the dimensions as needed
-# ggsave("starwars_ex.png") 
-```
-
 # Code on slide and practices
 
 ## Inspect data (Slide 7)
@@ -616,3 +560,56 @@ patched <- full +
 patched
 ```
 
+# Exercises
+
+```{r}
+# start by getting the subset of data you wish to focus on
+human <- starwars |>
+  filter(species == "Human") |>
+  select(name, skin_color, hair_color, gender)
+# films and starships are nested columns and requires "unnest"ing
+film_and_ships <- starwars |>
+  select(name, films, starships) |>
+  unnest(films, keep_empty = TRUE) |>
+  unnest(starships, keep_empty = TRUE)
+film_year <- data.frame(
+  films = film_and_ships |> distinct(films),
+  year = c(1980, 2005, 1983, 1977, 2015, 2002, 1999)
+)
+starwars_ex <- human |>
+  left_join(film_and_ships, by = "name") |>
+  left_join(film_year, by = "films") |>
+  mutate(
+    skin_color = fct_relevel(
+      skin_color, c("pale", "light", "white", "fair", "tan", "dark"))
+  )
+glimpse(starwars_ex)
+```
+
+## Exercise 1
+
+> Suppose you want to display how the proportion of feminine human characters have changed over the years. Decide on how you would summarize the data and create a plot with appropriate design. 
+
+```{r}
+
+```
+
+## Exercise 2
+
+> You notice feminine human characters are rarely on a starship in the earlier movies and you want to display gender, movie, and whether they were on a starship on a single plot.
+Construct a plot with appropriate legends. You can refer to the plot on the right or come up with your own design.
+
+```{r}
+
+```
+
+## Exericse 3
+
+> Arrange the plots from Exercise 1, Exercise 2, and/or any other plots together to come up with a coherent insight about how gender diversity has evolved (or not evolved) in Starwars movies.
+Use appropriate title, annotations, etc. as desired.
+
+```{r}
+
+# save the resulting plot; adjust the dimensions as needed
+# ggsave("starwars_ex.png") 
+```
