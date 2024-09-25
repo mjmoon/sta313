@@ -1,0 +1,544 @@
+---
+title: "Tutorial 2"
+author: "STA313"
+date: "2024-09-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+if (!require(ggtext)) {
+  install.packages("ggtext")
+  library(ggtext)
+}
+```
+
+## British casualties in the Crimean war
+
+```{r crimean-war}
+# loading data
+casualties <- read_csv("data/nigthingale.csv") |>
+  mutate(
+    # converts the Date string into a "date" object 
+    # with which you can use ?scale_*_date() in ggplot
+    date = as_date(Date, format = "%m/%Y")
+  ) 
+# create your visualization here
+# you can save your plot by calling ggplot() after generatin each plot
+```
+
+> Data retrieved from `HistData` package as shown below.
+```
+Nightingale |>
+  select(Date, Wounds, Disease, Other, Army) |>
+  mutate(Date = paste(
+    str_pad(month(Date), 2, pad = "0"), year(Date), sep = "/")) |>
+  write_csv("data/nigthingale.csv")
+```
+
+> Hint: See `?HistData::Nightingale` for metadata on the originating dataset.
+
+### In which months did % of deaths by disease out of total deaths was below 50%?
+
+```{r}
+casualties_long_prop <- casualties |>
+  # remove unused attributes
+  select(-c(Army, Date)) |>
+  pivot_longer(-date) |>
+  # compute proportion by cause for each date
+  mutate(
+    .by = "date",
+    prop = value / sum(value)
+  )
+casualties_long_prop
+```
+
+```{r}
+base_plt <- casualties_long_prop |>
+  ggplot(aes(
+    x = date, 
+    y = prop, 
+    fill = name == "Disease",
+    alpha = (name == "Disease" & prop < .5) 
+  )) +
+  geom_bar(
+    stat = "identity",
+    position = position_stack()
+  ) +
+  scale_x_date(date_breaks = "6 months", date_labels = "%b, %Y") +
+  scale_y_continuous(
+    breaks = c(0, .5, 1),
+    expand = expansion(mult = .02) # adjust extra padding on y-axis
+  ) +
+  scale_fill_manual( # highlight deaths from diseases
+    name = NULL,
+    labels = c(`TRUE` = "Disease", `FALSE` = "Other including wounds"),
+    values = c(`TRUE` = 2, `FALSE` = "grey50"),
+    breaks = c(TRUE, FALSE),
+    expand = c(0, 0),
+    # adjusta aethetics of the legend
+    guide = guide_legend(override.aes = list(alpha = c(1, 0.4)))
+  ) +
+  scale_alpha_manual( # highlight deaths from diseases > 0.5
+    values = c(`TRUE` = 1, `FALSE` = .4),
+    guide = NULL # don't include a legend
+  ) +
+  labs(
+    x = NULL, y = "Proportion of deaths by cause    ",
+    title = "In which months, did the deaths by disease\ncaused less than half of total deaths?"
+  ) +
+  theme_void() + # a blank theme
+  theme(
+    # draw the x-axis ticks
+    axis.ticks.x = element_line(),
+    axis.ticks.length.x = unit(6, "pt"),
+    # place the y-axis title at the top
+    axis.title.y = element_text(hjust = 1, angle = 90), 
+    # place axix tick labels
+    axis.text.x = element_text(margin = margin(b = 6)),
+    axis.text.y = element_text(margin = margin(l = 6)),
+    # add margins around the plot
+    plot.margin = margin(12, 12, 12, 12, unit = "pt"),
+    # place legend at the top right with a margin
+    legend.position = "top",
+    legend.justification = .9,
+    legend.direction = "vertical",
+    legend.box.margin = margin(t = 6),
+    # adjust the legend key size
+    legend.key.size = unit(8, "pt"),
+    legend.text = element_text(size = 12),
+    plot.title = element_text(size = 20, margin = margin(b = 10))
+  )
+ggsave("lec3c-base.png", base_plt)
+```
+
+
+```{r}
+max_disease <- casualties_long_prop |>
+  filter(name == "Disease") |>
+  filter(value == max(value))
+casualties |> arrange(Wounds) # inspect
+casualties |> arrange(-Wounds) # inspect
+less_than_half_disease <- casualties |>
+  filter(
+    date %in% (
+      casualties_long_prop |>
+        filter(prop < .5, name == "Disease") |>
+        pull(date)
+    )
+  ) |>
+  mutate(
+    label_Disease = format(Disease, big.mark = ", "),
+    label_Other = paste0("Wounds: ", format(Wounds, big.mark = ", "),
+                         " | Other: ", format(Other, big.mark = ", "))
+  ) |>
+  pivot_longer(
+    starts_with("label_"), 
+    values_to = "label",
+    names_transform = ~ str_remove(.x, "label_")
+  ) |>
+  mutate(
+    prop = if_else(
+      name == "Disease", 
+      Disease / (Disease + Wounds + Other), 
+      1
+    )
+  )
+  
+disease_no_wounds <- casualties |>
+  filter(Wounds == 0) |>
+  pull(Disease) |>
+  sum()
+```
+
+```{r fig.asp=1}
+annotated_plt <- base_plt +
+  # add a subtitle
+  labs(
+    x = NULL, y = "Proportion of deaths by cause    ",
+    title = "In which months, did the deaths by disease\ncaused less than half of total deaths?",
+    subtitle = "More soliders died from infectious diseases<br />than combat wounds or other reasons<br />throughout the 2 years of war<br />except during <span style='color: #df536b;'>**the highlighted 4 months**</span>."
+  ) +
+  scale_fill_manual( # highlight deaths from diseases
+    name = NULL,
+    labels = c(`TRUE` = "Infectious disease", `FALSE` = "Other including wounds"),
+    values = c(`TRUE` = 2, `FALSE` = "grey50"),
+    breaks = c(TRUE, FALSE),
+    expand = c(0, 0),
+    # adjusta aethetics of the legend
+    guide = guide_legend(override.aes = list(alpha = c(1, 0.4)))
+  ) +
+  # allow elements outside the plotting area
+  coord_cartesian(ylim = c(0, 1), clip = "off") +
+  scale_y_continuous(
+    breaks = c(0, .5, 1),
+    expand = expansion(mult = c(.01, .25)) # adjust extra padding on y-axis
+  ) +
+  scale_x_date(
+    breaks = ymd("1854-04-01", "1855-01-01", "1856-01-01"),
+    date_labels = "%b, %Y"
+  ) +
+  # annotate max disease month
+  annotate(
+    "segment",
+    x = max_disease$date - 5,
+    xend = max_disease$date - 5,
+    y = -.01,
+    yend = -.15,
+    colour = "grey50"
+  ) +
+  annotate(
+    "text",
+    x = max_disease$date,
+    y = -.15,
+    label = "This month observed the most deaths from diseases.",
+    colour = "grey50",
+    lineheight = .8,
+    size = 3,
+    hjust = 0,
+    vjust = .5
+  ) +
+  annotate(
+    "text",
+    y = max_disease$prop - .02,
+    x = max_disease$date,
+    label = format(max_disease$value, big.mark = ", "),
+    colour = "black",
+    angle = 90,
+    size = 3,
+    hjust = 1,
+    fontface = "bold"
+  ) +
+  # annotate 0 wound months
+  annotate(
+    "segment",
+    x = ymd("1854-04-01", "1856-02-01"),
+    xend = ymd("1854-07-01", "1856-03-01"),
+    y = 1.01,
+    yend = 1.01,
+    colour = "grey50"
+  ) +
+  annotate(
+    "text",
+    x = ymd("1854-05-15", "1856-02-15"),
+    y = 1.02,
+    label = "†",
+    vjust = 0,
+    colour = "grey50"
+  ) +
+  annotate(
+    "text",
+    x = ymd("1854-04-01"),
+    y = 1.1,
+    label = paste0(
+      "†There were no casualties from wounds\n",
+      "in these months and yet ", disease_no_wounds, " died from\n",
+      "diseases during these months in total.\n",
+      "359 of them died in July, 1854."
+    ),
+    colour = "grey50",
+    hjust = 0,
+    vjust = 0,
+    lineheight = .8,
+    size = 3,
+  ) +
+  # annotate less than half disease months
+  geom_text(
+    aes(label = label),
+    size = 3,
+    fontface = "bold",
+    hjust = 1,
+    nudge_y = -.02,
+    angle = 90,
+    data = less_than_half_disease,
+    colour = "black"
+  ) +
+  # annotate 276 wound months
+  annotate(
+    "segment",
+    x = ymd("1855-09-01"),
+    xend = ymd("1855-09-01"),
+    y = 1.01,
+    yend = 1.15,
+    colour = "grey50"
+  ) +
+  annotate(
+    "text",
+    x = ymd("1855-09-01") + 5,
+    y = 1.15,
+    label = 
+"276 died from wounds
+in September, 1855,
+vs. 189 from diseases.
+This month saw the second 
+most deaths from wounds.",
+    hjust = 0,
+    vjust = .5,
+    lineheight = .8,
+    size = 3,
+    colour = "grey50"
+  ) +
+  theme(
+    axis.text.x = element_text(margin = margin(b = 6), hjust = 0),
+    plot.margin = margin(b = 36, 12, 12, 12, unit = "pt"),
+    # allow markdown/html in plot subtitle (requires ggtext library)
+    plot.subtitle = element_markdown(
+      size = 14, 
+      margin = margin(b = 8),
+      colour = "grey30", 
+      face = "italic",
+      hjust = .5
+    )
+  )
+ggsave("lec3c-annotate.png", annotated_plt, width = 7, height = 7)
+```
+
+```{r fig.asp=1}
+annotated_plt_2 <- base_plt +
+  # add a subtitle
+  labs(
+    x = NULL, y = "Proportion of deaths by cause    ",
+    title = "In which months, did the deaths by disease\ncaused less than half of total deaths?",
+    subtitle = "More soliders died from infectious diseases<br />than combat wounds or other reasons<br />throughout the 2 years of war<br />except during <span style='color: #df536b;'>**the highlighted 4 months**</span>."
+  ) +
+  scale_fill_manual( # highlight deaths from diseases
+    name = NULL,
+    labels = c(`TRUE` = "Infectious disease", `FALSE` = "Other including wounds"),
+    values = c(`TRUE` = 2, `FALSE` = "grey50"),
+    breaks = c(TRUE, FALSE),
+    expand = c(0, 0),
+    # adjusta aethetics of the legend
+    guide = guide_legend(override.aes = list(alpha = c(1, 0.4)))
+  ) +
+  # allow elements outside the plotting area
+  coord_cartesian(ylim = c(0, 1), clip = "off") +
+  scale_y_continuous(
+    breaks = c(0, .5, 1),
+    expand = expansion(mult = c(.01, .25)) # adjust extra padding on y-axis
+  ) +
+  scale_x_date(
+    breaks = ymd("1854-04-01", "1855-01-01", "1856-01-01"),
+    date_labels = "%b, %Y"
+  ) +
+  # annotate max disease month
+  annotate(
+    "segment",
+    x = max_disease$date - 5,
+    xend = max_disease$date - 5,
+    y = -.01,
+    yend = -.15,
+    colour = "grey50"
+  ) +
+  annotate(
+    "text",
+    x = max_disease$date - 10,
+    y = -.15,
+    label = "This month observed\n the most deaths\nfrom infectious diseases.",
+    colour = "grey50",
+    lineheight = .8,
+    size = 3,
+    hjust = 1,
+    vjust = .5
+  ) +
+  annotate(
+    "text",
+    y = max_disease$prop - .02,
+    x = max_disease$date,
+    label = format(max_disease$value, big.mark = ", "),
+    colour = "black",
+    angle = 90,
+    size = 3,
+    hjust = 1,
+    fontface = "bold"
+  ) +
+  # annotate cholera waves
+  annotate(
+    "segment",
+    x = ymd("1854-06-17", "1855-04-12"),
+    xend = ymd("1855-02-28", "1856-03-31"),
+    y = 1.01,
+    yend = 1.01,
+    colour = "grey50"
+  ) +
+  annotate(
+    "text",
+    x = ymd("1854-10-20", "1855-10-20"),
+    y = 1.03,
+    label = c("Wave I", "Wave II") ,
+    vjust = 0,
+    colour = "grey50"
+  ) +
+  annotate(
+    "text",
+    x = ymd("1855-03-31"),
+    y = 1.1,
+    label = paste0(
+      "There were 2 Waves of cholera epidemic.
+Wave I lasted from June 17, 1854 to February 1588
+while Wave II occured from April 12, 1855 to March 1856."
+    ),
+    colour = "grey50",
+    hjust = .5,
+    vjust = 0,
+    lineheight = .8,
+    size = 3,
+  ) +
+  # annotate less than half disease months
+  geom_text(
+    aes(label = label),
+    size = 3,
+    fontface = "bold",
+    hjust = 1,
+    nudge_y = -.02,
+    angle = 90,
+    data = less_than_half_disease,
+    colour = "black"
+  ) +
+  # annotate 276 wound months
+  annotate(
+    "segment",
+    x = ymd("1855-09-01"),
+    xend = ymd("1855-09-01"),
+    y = -.01,
+    yend = -.18,
+    colour = "grey50"
+  ) +
+  annotate(
+    "text",
+    x = ymd("1855-09-01") + 5,
+    y = -.18,
+    label = 
+"276 died from wounds
+in September, 1855,
+vs. 189 from diseases.
+This month saw the second 
+most deaths from wounds.",
+    hjust = 0,
+    vjust = .5,
+    lineheight = .8,
+    size = 3,
+    colour = "grey50"
+  ) +
+  theme(
+    axis.text.x = element_text(margin = margin(b = 6), hjust = 0),
+    plot.margin = margin(b = 48, 12, 12, 12, unit = "pt"),
+    # allow markdown/html in plot subtitle (requires ggtext library)
+    plot.subtitle = element_markdown(
+      size = 14, 
+      margin = margin(b = 8),
+      colour = "grey30", 
+      face = "italic",
+      hjust = .5
+    )
+  )
+annotated_plt_2
+ggsave("lec3c-annotate-2.png", annotated_plt_2, width = 7, height = 7)
+```
+
+## Bonus: Recreating Nightingale's rose diagram
+
+```{r}
+casualties_nightingale <- casualties_long_prop |>
+  # start from April 1855
+  filter(date >= ymd("1855-04-01")) |> 
+  mutate(
+    # use a discrete variable and create date labels manually
+    yearmonth_ind = round((date - ymd("1855-04-01")) / 30),
+    yearmonth_label = month(date, label = TRUE)
+  )
+
+rose_plt <- casualties_nightingale |>
+  ggplot() +
+  geom_bar(
+    aes(
+      x = yearmonth_ind, 
+      y = value, 
+      fill = name == "Disease",
+      alpha = (name == "Disease" & prop > .5) 
+    ),
+    stat = "identity",
+    width = 1,
+    position = position_stack()
+  ) +
+  # note that yearmonth is no long a date type
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(breaks = c(0, .5, 1)) +
+  scale_fill_manual( # highlight deaths from diseases
+    name = NULL,
+    labels = c(`TRUE` = "Disease", `FALSE` = "Other including wounds"),
+    values = c(`TRUE` = 2, `FALSE` = "grey50"),
+    breaks = c(TRUE, FALSE),
+    # adjusta aethetics of the legend
+    guide = guide_legend(override.aes = list(alpha = c(1, 0.4)))
+  ) +
+  scale_alpha_manual( # highlight deaths from diseases > 0.5
+    values = c(`TRUE` = 1, `FALSE` = .4),
+    guide = NULL # don't include a legend
+  ) +
+  # add vertical lines for the beginning of years
+  geom_vline(xintercept = c(-0.5, 8.5), colour = "grey80") +
+  # annotate dates manually
+  annotate(
+    "text", 
+    x = c(-.5, 8.5), 
+    y = casualties_nightingale |>
+      summarise(.by = "date", value = sum(value)) |>
+      pull(value) |>
+      max(),
+    label = c("Year\n1855", "1856\n"),
+    angle = c(90, 0),
+    colour = "grey70",
+    size = 3
+  ) +
+  geom_text(
+    aes(x = yearmonth_ind, y = total, label = yearmonth_label),
+    vjust = c(0, 1, 1, 2, 0.5), hjust = c(.4, 0, .5, .5, 1), 
+    nudge_y = 100, size = 3, 
+    data = casualties_nightingale |>
+      summarise(
+        .by = c("yearmonth_ind", "yearmonth_label"), 
+        total = sum(value)
+      ) |>
+      filter(
+        yearmonth_ind %in% c(0, 2, 4, 6, 9)
+      )
+  ) +
+  labs(
+    title = "In which months, did the deaths by disease\noutnumber the deaths from wounds?",
+    subtitle = "April, 1855 to March, 1856",
+    captionn = paste(
+      "The radius of each wedge represents the number of casulaties by cause \nin each month.",
+      "Can you stop interpreting areas with the counts?"
+    )
+  ) +
+  coord_radial(theta = "x", inner.radius = .1, start = 0) +
+  theme_void() + # a blank theme
+  theme(
+    # add margins around the plot
+    plot.margin = margin(12, 12, 12, 12, unit = "pt"),
+    # place legend at the bottom center with a margin
+    legend.position = "bottom",
+    legend.box.margin = margin(t = 6),
+    # adjust the legend key size
+    legend.key.size = unit(8, "pt"),
+    legend.text = element_text(size = 12),
+    plot.title = element_text(size = 20, margin = margin(b = 8)),
+    plot.subtitle = element_text(size = 18, margin = margin(b = 10), 
+                                 colour = "grey40", hjust = .5),
+    plot.caption = element_text(
+      size = 12, colour = "grey60", margin = margin(t = 6), hjust = 1
+    ),
+    plot.caption.position = "plot"
+  )
+ggsave("lec3c-rose.png", rose_plt)
+```
+
+
+
+```{r}
+ggplot(casualties, aes(x = date)) +
+  theme_minimal() +
+  geom_line(aes(y = Wounds, colour = "Wounds")) +
+  geom_line(aes(y = Disease, colour = "Disease"))
+```
