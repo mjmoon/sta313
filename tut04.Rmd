@@ -581,7 +581,7 @@ film_and_ships <- starwars |>
   unnest(starships, keep_empty = TRUE)
 film_year <- data.frame(
   films = film_and_ships |> distinct(films),
-  year = c(1980, 2005, 1983, 1977, 2015, 2002, 1999)
+  year = c(1977, 1980, 1983, 2005, 2015, 1999, 2002)
 )
 starwars_ex <- human |>
   left_join(film_and_ships, by = "name") |>
