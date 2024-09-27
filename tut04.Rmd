@@ -235,7 +235,13 @@ p_missing +
     )
   ) +
   scale_size_continuous(
-    # practice! see slide 26
+    # add an extra dot for missing values
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    guide = guide_legend(
+      # practice! Reconstruct plot on slide 26
+      
+    )
   ) +
   theme(
     legend.position = "top",
