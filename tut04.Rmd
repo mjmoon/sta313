@@ -374,7 +374,7 @@ ggplot(
     title = "Larger mammals, specially herbivores,\ntend to sleep less, but have longer sleep cycles.",
     x = "Body weight (kg)",
     y = "Ratio of sleep time over awake time",
-    size = "Sleep cycle (hr)^1",
+    size = expression("Sleep cycle hr"^1), # for mathematical expressions
     colour = "Feeding habit",
     caption = expression(""^1~"Sleep cycle is the period between REM seep and non-REM sleep.")
   ) +
@@ -391,7 +391,6 @@ ggplot(
 		nudge_y = c(-.2, -1, -.5),
 		show.legend = FALSE
 	)
-
 ```
 
 ## Arranging multiple plots (slides 42 & 43)
@@ -443,10 +442,10 @@ full <- ggplot(mapping = aes(bodywt, sleep_total / awake)) +
     )
   ) +
   labs(
-    title = "Larger mammals, specially herbivores, tend to sleep less, but have longer sleep cycles.",
+    title = "Larger mammals, specially herbivores,\ntend to sleep less, but have longer sleep cycles.",
     x = "Body weight (kg)",
     y = "Ratio of sleep time over awake time",
-    size = "Sleep cycle (hr)^1",
+    size = expression("Sleep cycle hr"^1), # for mathematical expressions
     colour = "Feeding habit",
     caption = expression(""^1~"Sleep cycle is the period between REM seep and non-REM sleep.")
   ) +
@@ -559,11 +558,13 @@ pherbi <- ggplot(mapping = aes(bodywt, sleep_total / awake)) +
   labs(subtitle = "Herbivores", x = "", y = "")
 
 # patchwork library allows arranging multiple plots
+# see ?`patchwork-package`
 patched <- full + 
   (pcarni + pomni + pinsecti + pherbi + plot_layout(nrow = 1)) +
-  plot_layout(ncol = 1)
+  plot_layout(ncol = 1, heights = c(1, .5))
 
 patched
+ggsave("patched.png", patched, height = 8, width = 8)
 ```
 
 # Exercises
