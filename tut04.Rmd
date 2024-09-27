@@ -209,7 +209,7 @@ p_full +
 
 ```{r}
 # practice ! (slide 24)
-p_full +
+p_missing + # you must complete the code for slide 17 first!
   theme(
     # complete the code
   )
