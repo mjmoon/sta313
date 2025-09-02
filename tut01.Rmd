@@ -1,133 +1,108 @@
 ---
-title: "A tour of ggplot"
-author: "STA313"
-date: "2024-09-13"
-output: html_document
+title: "STA313 Tutorial"
+author: "STA313 TA"
+date: '2024-09-06'
+output: pdf_document
+header-includes:
+  - \usepackage{booktabs}
 ---
 
-```{r setup, message=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-if (!require(palmerpenguins)) {
-  install.packages("palmerpenguins") # install the package if missing
-}
-if (!require(mosaicData)) {
-  install.packages("mosaicData") # install the package if missing
-}
-library(tidyverse) 
-library(mosaicData)
-data(SAT)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) # sets the chunk option globally
 ```
 
-I am loading all required libraries in the `setup` code chunk above to 
+```{r example, echo=FALSE, include=TRUE, eval=TRUE}
+summary(cars)
+```
 
-1. ensure all required libraries are available throughout the document; and
-2. above loading the packages multiple times unnecessarily.
+```{r echo=TRUE, include=FALSE}
+summary(cars)
+```
 
-Alternatively, you can load a library in a separate code chunk just before you start
-using it. 
+## Inline Code
 
-_Note: Loading `tidyverse` also loads `ggplot2`. We will also use functions
-from the `tidyverse` family which are not included in `ggplot2`. Alternatively, 
-you can individually load `ggplot2` and `dplyr` which contains the other required functions._
+The inline code `<place the inline code>` renders 3.1416.
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+# Markdown typography
+
+## Heading 2
+
+### Heading 3
+
+#### Heading 4
+
+## Paragraphs
+
+This
+sentence
+renders in a single
+line.
+
+This is a new paragraph. This is a new line.
+
+## Lists
+
+### Unordered
+
++   This is 
++   an unordered
++   list rendered
++   with bullet points
+
+### Ordered
+
+1.  This is an item
+2.  in a numbered list.
+1.  Numbers are
+3.  automatically assigned.
+
+## Math experssions
+
+This $\alpha^1$ renders inline.
+
+$$\beta_2$$ renders in a separate paragraph.
+
+\newpage
+
+## Table
+
+Use `kable` to create well-formatted tables with captions.
+
+```{r sometable}
+library(knitr) 
+# if you have already loaded the  library 
+# in a previous chunk, there is no need 
+# to load it again here.
+tbl <- data.frame(
+  Labels = c('Label 1', 'Label 2', 'Label 3'),
+  Numbers = c(1000,200,-35),
+  Decimals = c(1.0005, pi, exp(1))
+)
+kable(tbl) # fill optional arguments
+```
+
+## Figures
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE, fig.width=4, fig.height=3, out.width=".5\\linewidth", fig.cap="Figure Caption", fig.align="center"}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 
-## Palmer penguins
-
-Measurements for penguins species, island in Palmer Archipelago, size (flipper length, body mass, bill dimensions), and sex.
+## Application exercises
 
 ```{r}
-glimpse(penguins)
 ```
-
-```{r warning=FALSE}
-# bill depth and length plot
-ggplot(
-  penguins,
-  aes(x = bill_depth_mm, y = bill_length_mm, colour = species)
-) +
-  geom_point() +
-  labs(
-    title = "Bill sizes may help distinguish different penguin species",
-    subtitle = "Bill depths and lengths of Adelie, Chinstrap, and Gentoo penguins",
-    x = "Bill depth (mm)",
-    y = "Bill length (mm)",
-    colour = "Species"
-  )
-```
-
-## Application exercise 1
-
-> Using the `mpg` data set, map the engine displacement values to the x-ais and the highway miles per gallon to the y-axis. Represent each observation with a point. Apply the "darkgreen" colour to the entire geometry. Add a meaningful title (and subtitle), and labels.
-
-First, have a look at the data set. Alternatively, type `?mpg` in the console to 
-load the documentation page for more details after loading `tidyverse`.
-
-```{r}
-glimpse(mpg) # mpg and glimpse are available through `tidyverse`
-```
-
-
-```{r}
-ggplot(mpg, aes(x = displ, y = hwy))
-# complete the plot
-```
-
-
-## Application exercise 2
-
-> Using the `mpg` data set, recreate the chart below. (See slide 39)
-
-```{r}
-ggplot(mpg) + # complete the mapping
-  geom_bar(fill = "orange")         # geom_bar is used to plot bars
-# complete the plot
-```
-
-## Application exercise 3
-
-> Using the `mpg` data set, recreate the chart below. (See slide 55)
-
-```{r}
-mpg |>
-  mutate(class = forcats::fct_infreq(class)) |> 
-  ggplot() +
-  geom_bar(aes(class), fill = "orange")
-```
-
-_Note: The pipe operator `|>` feeds the output of the left-hand side to the call on the right-hand side as its first argument. In the code chunk above,  the output of `mutate(mpg, class = forcats::fct_infreq(class))` is used as the first (`data`) argument of `ggplot()` call. `|>` is available from R version 4.0+._
-
-## Application exercise 4
-
-```{r eval=FALSE}
-# included for demonstration purposes but not executed
-# the data is loaded at the top of the document already
-library(mosaicData)
-data(SAT)
-```
-
-> Reproduce this plot following the steps on the next slide. 
-(See slides 65 and 66).
-
-First, have a look at the data set. Alternatively, type `?SAT` in the console to 
-load the documentation page for more details after loading `mosaicData`.
-
-```{r}
-glimpse(SAT) # SAT is available through `mosaicData`
-```
-
-```{r}
-# create the plot
-```
-
-## Application exercise 5
-
-> Using the `mpg` data set, recreate the chart below. (See slide 67)
-
-```{r}
-mutate(mpg, class = forcats::fct_infreq(class)) |>
-  # complete the plot
-  scale_fill_viridis_d()           # see ?scale_fill_viridis_d
-```
-
-
-_Note: If you want to sort the values based on other criteria, see `?forcats::fct_infreq` for other related functions. Alternatively, you can use `levels` argument in `factor()` function to manually order the values of a categorical variable._
