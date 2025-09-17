@@ -1,0 +1,161 @@
+---
+title: "Visualization brief"
+author: "STA313"
+date: "September, 2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse) # loads ggplot2 and other tidyverse packages
+```
+
+## Florence Nightingale's data on the Crimean War 
+
+```{r}
+nightingale <- read_csv("nightingale.csv")
+glimpse(nightingale)
+```
+
+`tidyverse` includes `lubridate` which is a R packages that provides convenience 
+functions that work well with dates. See https://lubridate.tidyverse.org or the
+help page using `?lubridate`.
+
+```{r}
+?lubridate
+```
+
+`Date` column contains the month of each record. However, it is stored 
+as "character". R does not recognize that it contains information about 
+year and month. `lubridate::as_date()` can cast the column to a data type that 
+recognizes year and month. You can help the function recognize the information 
+by telling the function in what format the dates are stored. You can find how
+the date formats are specified at https://stat.ethz.ch/R-manual/R-devel/library/base/html/strptime.html
+
+```{r}
+nightingale <- nightingale |>
+  mutate( # mutate() is used to transform/define columns
+    yearmonth = as_date(Date, format = "%m/%Y") 
+    # %m/%Y -> (month in 2 digits)/(year in 4 digits)
+  )
+```
+
+Alternatively, you can use `as.Date()` function which is included R. The function
+requires year, month, and day at minimum. We can manually add "01" as the day
+for each month and apply the function. 
+
+```{r}
+nightingale <- nightingale |>
+  mutate(
+    yearmonth_base = as.Date(
+      paste(Date, "01", sep = "/"), # append "01" after `Date` separated by "/"
+      format = "%m/%Y/%d"
+    )
+  )
+```
+
+```{r}
+glimpse(nightingale)
+```
+
+### Visualize 
+
+### Example: In which months did the deaths by disease exceed deaths by wounds?
+
+Approach: Plot casualties vs. time with 3 different categories 
+{"Disease", "Field", "Wounds"} as lines.
+
+Attribute | Type | Channel
+----|----|----
+time (year/month) | temporal (quantitative/sequential) | position on a common scale (x axis)
+casualty count | quantitative/sequential  | position on a common scale (y axis)
+cause of death | categorical/nominal
+
+We can use `scale_x_date()` from `ggplot2` package which works with the `date`
+data type. You can specify the interval of the breaks as well as the format of 
+the labels.
+
+```{r}
+ggplot(nightingale, aes(x = yearmonth)) + 
+  geom_line(aes(y = Disease), colour = "forestgreen") +
+  geom_line(aes(y = Wounds), colour = "magenta") +
+  geom_line(aes(y = Other), colour = "grey30") +
+  labs(
+    title = "What casued the most deaths?",
+    subtitle = "Casualties vs. time",
+    x = "Month",
+    y = "Count"
+  ) +
+  theme_minimal() + # you can apply different themes to ggplots
+  scale_x_date(date_breaks = "6 month", date_labels =  "%b, %Y")
+```
+
+Alternatively, we can rearrange the dataset to a "long" format which explicitly 
+lists the three attributes we are encoding.
+
+```{r}
+nightingale |>
+  pivot_longer(
+    # these columns are "pivoted" to name-value pairs
+    cols = c(Disease, Wounds, Other)
+  ) |>
+  rename(
+    # rename
+    cause_of_death = name,
+    count = value
+  )
+```
+
+```{r}
+nightingale |>
+  pivot_longer(
+    # these columns are "pivoted" to name-value pairs
+    cols = c(Disease, Wounds, Other)
+  ) |>
+  rename(
+    # rename
+    cause_of_death = name,
+    count = value
+  ) |>
+  ggplot() +
+  theme_bw() + # you can apply different themes to ggplots
+  geom_line(
+    aes(
+      x = yearmonth,           # time -> x axis
+      y = count,               # count -> y axis
+      colour = cause_of_death  # cause of death -> colour
+    )
+  ) +
+  labs(
+    title = "What casued the most deaths?",
+    subtitle = "Casualties vs. time",
+    x = "Month",
+    y = "Count",
+    colour = "Cause of death" # update the label for colour legend
+  ) +
+  scale_x_date(date_breaks = "6 month", date_labels =  "%b, %Y") +
+  scale_colour_manual(
+    # control the colour mapping using a `scale_colour_*()` function
+    values = c(Disease = "forestgreen", Wounds = "magenta", Other = "grey30"),
+    breaks = c("Disease", "Wounds", "Other")
+  )
+```
+
+You can do better!
+
+### Visualize your own designs! 
+
+Design as many as possible.
+
+```{r}
+```
+
+## Star Wars Character: Ugly & useless visualization 
+
+Make as useless, and as ugly, visualization as possible using starwars dataset!
+
+```{r}
+starwars # the dataset is part of `dplyr` package which is part of `tidyverse`
+```
+
+
