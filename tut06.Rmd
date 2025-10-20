@@ -1,0 +1,386 @@
+---
+title: "Shiny & ggiraph tutorial"
+date: "2025-10-20"
+output: 
+  html_document:
+    toc: true
+    theme: united
+runtime: shiny
+---
+
+# Shiny & ggiraph Tutorial
+
+## Setup and Data
+
+```{css, echo=FALSE}
+.shiny-frame{height: 800px;} # set shiny app height
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+required_packages <- c(
+  "shiny", "bslib", "ggiraph", 
+  "ggrepel", "ggtext", "viridis", 
+  "patchwork", "tidyverse"
+)
+for (p in required_packages) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p, character.only = TRUE)
+    require(p)
+  }
+}
+```
+
+```{r data, include=FALSE}
+# check the data frame `msleep`
+glimpse(msleep)
+help(msleep)
+```
+
+```{r preprocessing}
+data("msleep", package = "ggplot2") # resets the data frame
+# Set vore as a factor with NA's marked as "missing"
+msleep <- msleep |>
+  mutate(
+    vore = factor(
+      if_else(is.na(vore), "missing", vore), 
+      levels = c("carni", "herbi", "insecti", "omni", "missing")
+    )
+  )
+```
+
+## Static `ggplot` graph
+
+`base_plt` is our template `ggplot2` object. We will add different layers for 
+each example.
+
+
+```{r}
+base_plt <- msleep |>
+  ggplot(aes(bodywt, sleep_total / awake, colour = vore)) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.5, 1, 2.5, 5)
+  ) +
+  theme_minimal() +
+  scale_size_continuous(
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    limits = c(0, 1.5),
+    guide = guide_legend(
+      order = 1,
+      title.position = "top",
+      title.hjust = 0,
+      label.position = "right",
+      override.aes = list(shape = c(19, 19, 19, 1))
+    )
+  ) +
+  theme(
+    legend.text = element_markdown(size = 8),
+    legend.title = element_text(size = 10),
+    legend.position = "top",
+    legend.box = "vertical",
+    legend.box.just = "left",
+    legend.justification = c(0, 1),
+    legend.margin = margin(),
+    legend.key.height = unit(0, "pt"),
+    axis.title = element_text(hjust = 0, size = 10),
+    title = element_text(size = 12),
+    plot.caption = element_text(size = 8, colour = "grey50")
+  ) +
+  labs(
+    title = "Larger mammals, specially herbivores,\ntend to sleep less, but have longer sleep cycles.",
+    x = "Body weight (kg)",
+    y = "Ratio of sleep time over awake time",
+    size = expression("Sleep cycle hr"^1), # for mathematical expressions
+    colour = "Feeding habit",
+    caption = expression(""^1~"Sleep cycle is the period between REM seep and non-REM sleep.")
+  )
+```
+
+Adding `geom_point()` layers results in a static visualization.
+
+```{r static, echo=FALSE}
+colour_map <- c(RColorBrewer::brewer.pal(4, "Dark2"), "#7f7f7f")
+# also try:
+# colour_map <- c(viridis(4, begin = .1, end = .9), "#7f7f7f")
+
+names(colour_map) <- levels(msleep$vore)
+static_plt <- base_plt +
+  geom_point(aes(size = sleep_cycle), alpha = 0.5,
+             data = filter(msleep, !is.na(sleep_cycle))) +
+  geom_point(size = 3, shape = 1, alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, is.na(sleep_cycle))) +
+  scale_colour_manual(
+    values = colour_map, 
+    labels = paste0(
+      "<span style='color:",
+      colour_map, ";'>",
+      c("Carnivore", "Herbivore", "Insectivore", "Omnivore", "Not available"),
+      "</span>"
+    ),
+    guide = guide_legend(
+      order = 2,
+      title.position = "top",
+      title.hjust = 0,
+      byrow = TRUE,
+      override.aes = list(size = 2)
+    )
+  ) 
+static_plt
+```
+
+```{r}
+important_labels <- c(
+			"An average horse sleeps\nonly 2.7 hours a day!",
+			"Humans sleep 8 hours a day and\nhave a sleep cycle of 1.5 hours on average.\nHope you all have 8 hours of daily sleep.", 
+			"You are more likely to find\na little brown bat in their sleep\nas they sleep 19.9 hours a day."
+		)
+important_species <- c("Horse", "Human", "Little brown bat")
+static_plt  +
+  ## from ggrepel library
+  geom_label_repel(
+		label = important_labels,
+		size = 2,
+		data = filter(msleep, name %in% important_species),
+		nudge_x = c(-1.5, -2, 1),
+		nudge_y = c(-.2, -1, -.5),
+		show.legend = FALSE
+	)
+```
+
+## `ggiraph`
+
+### Practice
+
+1. Change the `geom_point()` calls to `geom_point_interactive()` so that the
+tooltips display the name and sleep cycle of the species. Don't forget 
+`data_id`!
+2. Use `opts_selection_inv()` to hide non-selected species by setting their fill 
+and stroke opacity to 0.
+3. Try changing all `data_id` to `vore`. What happens?
+
+
+```{r ggiraph}
+ggiraph_plt <- base_plt +
+  geom_point( # PRACTICE #1
+    aes(size = sleep_cycle),
+    alpha = 0.2,
+    data = filter(msleep, !is.na(sleep_cycle))
+  ) +
+  geom_point( # PRACTICE #1
+    size = 3, shape = 1, alpha = 0.2, show.legend = FALSE,
+    data = filter(msleep, is.na(sleep_cycle)) # missing sleep cycle
+  ) +
+  geom_point_interactive( 
+    aes(
+      size = sleep_cycle,
+      data_id = name,
+      tooltip = important_labels
+    ),
+    # interaction for only the "important" species
+    data = filter(msleep, name %in% important_species) |> 
+      mutate(tooltip_text = important_labels)
+  ) +
+  scale_colour_manual(
+    values = colour_map, 
+    labels = paste0(
+      "<span style='color:",
+      colour_map,
+      ";'>",
+      c("Carnivore", "Herbivore", "Insectivore", "Omnivore", "Not available"),
+      "</span>"
+    ),
+    guide = guide_legend(
+      order = 2,
+      title.position = "left",
+      title.hjust = 0,
+      byrow = TRUE,
+      override.aes = list(size = 2)
+    )
+  ) 
+girafe(
+  ggobj = ggiraph_plt,
+  width_svg = 6,
+  height_svg = 6,
+  options = list(
+    opts_selection(
+      css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 2;", 
+      type = "single", 
+      only_shiny = FALSE,
+      selected = "Human"
+    ),
+    opts_selection_inv(
+      # PRACTICE #2
+    ),
+    opts_hover(
+      css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1; stroke: black;"
+    ), 
+    opts_zoom(min = 1, max = 2) 
+  )
+)
+```
+
+### Extra challenge: Filtering using legend
+
+Can you make the legend keys interactive so that clicking on the `Feeding habit` 
+legend keys select all mammals in the corresponding feeding habit group?
+
+Credit: https://stackoverflow.com/questions/73721101/ggiraph-r-how-to-link-legend-and-plot-with-same-data-id-attribute/73921572#73921572
+
+```{r ggiraph-challenge}
+ggiraph_plt_legend_filter <- base_plt # CHALLENGE
+girafe(
+  ggobj = ggiraph_plt_legend_filter,
+  width_svg = 6,
+  height_svg = 6,
+  options = list(
+    opts_selection_key(
+      css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 2;", 
+      type = "single", 
+      only_shiny = FALSE
+    ),
+    opts_selection(
+      css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 2;", 
+      type = "single", 
+      only_shiny = FALSE,
+      selected = "Human" # this no longer works; can you explain why?
+    ),
+    opts_selection_inv(
+      css = "fill-opacity: 0.1; stroke-opacity: 0.1;"
+    ),
+    opts_hover_key(
+      css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1;"
+    ),
+    opts_hover(
+      css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1;"
+    ), 
+    opts_zoom(min = 1, max = 2) 
+  )
+)
+```
+
+## Shiny
+
+### Practice
+
+1.  Place an input slider as shown on the slide.
+2.  Filter selected_vore based on the range of sleep cycle selected on the 
+server.
+3.  Make sure to test your app!
+
+
+```{r shiny}
+# user interface
+ui <- page_fluid(
+  tags$head(
+    tags$style(HTML(
+# using values from colour_map
+"
+.carni { color: #1B9E77; }
+.herbi { color: #D95F02; }
+.insecti { color: #7570B3; }
+.omni { color: #E7298A; }
+.missing { color: #7F7F7F; }
+"
+    ))
+  ),
+  card(
+    card_title(h2("Who sleeps more?")),
+    navset_pill(
+      nav_panel(
+        "Using Shiny",
+        layout_sidebar(
+          sidebar = sidebar(
+            # filter for feeding habit
+            checkboxGroupInput( 
+              inputId = "feeding_filter",
+              label = "Feeding habit", 
+              choiceValues = list("carni", "herbi", "insecti", "omni", "missing"),
+              choiceNames = list(
+                span("Carnivore", class = "carni"),
+                span("Herbivore", class = "herbi"),
+                span("Insectivore", class = "insecti"),
+                span("Omnivore", class = "omni"),
+                span("Not available", class = "missing")
+              ),
+              selected = list("carni", "herbi", "insecti", "omni", "missing")
+            ),
+            # PRACTICE #1
+            input_switch(
+              id = "na_sleep_switch", 
+              label = "Hide missing sleep cycle"
+            )
+          ),
+          card(plotOutput("plot"))
+        )
+      ),
+      nav_panel(
+        "Using ggiraph in Shiny",
+        card(girafeOutput("ggiraph_plot"))
+      )
+    )
+  )
+)
+# server
+server <- function(input, output) {
+  output$plot <- renderPlot({
+    selected_vore <- msleep |>
+      filter(vore %in% input$feeding_filter)
+    out <- base_plt + 
+      geom_point(
+        aes(size = sleep_cycle), 
+        alpha = 0.3,
+        data = selected_vore |>
+          filter(
+            !is.na(sleep_cycle)
+            # PRACTICE #2
+          )
+      ) +
+      scale_colour_manual(values = colour_map, guide = NULL) 
+    if (!input$na_sleep_switch) {
+      out <- out +
+        geom_point(size = 3, shape = 1, alpha = 0.5, show.legend = FALSE,
+                   data = filter(selected_vore, is.na(sleep_cycle)))
+    }
+    out
+  })
+  
+  output$ggiraph_plot <- renderGirafe({
+    girafe(
+      ggobj = ggiraph_plt,
+      width = 8,
+      height = 6,
+      options = list(
+        opts_selection_key(
+          css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 2;", 
+          type = "single"
+        ),
+        opts_selection(
+          css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 2;", 
+          type = "single",
+          selected = "Human" # this no longer works; can you explain why?
+        ),
+        opts_selection_inv(
+          css = "fill-opacity: 0.1; stroke-opacity: 0.1;"
+        ),
+        opts_hover_key(
+          css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1;"
+        ),
+        opts_hover(
+          css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1;"
+        ), 
+        opts_zoom(min = 1, max = 2) 
+      )
+    )
+  })
+}
+
+# excute server
+shinyApp(ui = ui, server = server)
+```
