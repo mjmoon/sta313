@@ -1,0 +1,857 @@
+---
+title: "Fine-tuning with ggplot"
+author: "STA313 Teaching Team"
+date: "October 2026"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+packages <- c("patchwork", "ggrepel", "ggtext")
+# install missing packages
+for (p in packages) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+```
+
+## Before we start...
+### `msleep` Data Set
+
+```{r}
+?msleep # metadata available on the help page (part of ggplot2 package)
+glimpse(msleep) # see the data
+```
+
+### Basic Plotting with `ggplot2`
+
+You should understand all code used here from the previous tutorial.
+
+```{r}
+# we will save the object to a variable to reuse it later
+p_base <- ggplot(msleep, aes(bodywt, sleep_total / awake)) +
+	geom_point(aes(colour = sleep_cycle)) +
+	labs(
+		title = "Sleep time by body weight among mammals.",
+		colour = "Sleep cycle (hr)",
+		y = "Ratio of sleep time over awake time",
+		x = "Body weight (kg)"
+	)
+p_base +
+  scale_x_continuous(transform = "log") + # plot x-axis on log scale
+	scale_y_continuous(transform = "log")   # plot y-axis on log scale
+```
+
+### Application Exercise 1
+
+```{r app-ex-1}
+# try on your own before looking at the code provided below
+p_base +
+  scale_x_continuous(transform = "log") + # plot x-axis on log scale
+	scale_y_continuous(transform = "log") + # plot y-axis on log scale
+  theme_minimal()
+# add the necessary layer
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+p_base +
+  scale_x_continuous(transform = "log") + # plot x-axis on log scale
+	scale_y_continuous(transform = "log") + # plot y-axis on log scale
+  theme_minimal() +
+  geom_smooth(
+    method = "lm",
+    formula = y ~ x, # optional (it is the default value)
+    se = FALSE
+  )
+```
+
+## Geoms
+### Adjusting Geometric Objects
+
+```{r}
+p_orange <- p_base +
+  labs(
+    title = "Sleep time by body weight among mammals.",
+    colour = "Sleep cycle (hr)",
+    y = "Ratio of sleep time over awake time",
+    x = "Body weight (kg)"
+  ) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(0.1, 1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.2, 0.5, 1, 2.5, 5)
+  ) +
+  geom_smooth(
+    method = "lm", 
+    formula = y ~ x,
+    se = FALSE, 
+    linetype = "longdash", 
+    colour = "darkgrey"
+  ) +
+  scale_colour_gradient(
+    low = "lightgrey",
+    high = "orange"
+  ) +
+  theme_minimal()
+p_orange
+```
+
+### Application Exercise 2 
+
+```{r app-ex-2}
+# try on your own before looking at the code provided below
+msleep |>
+  mutate(
+    # this line creates the dichotomous sleep cycle attribute
+    sleep_cycle_binary = sleep_cycle > median(sleep_cycle, na.rm = TRUE)
+  ) |>
+  ggplot(aes(bodywt, sleep_total / awake)) +
+  theme_minimal() +
+  geom_point(aes(colour = sleep_cycle_binary)) +
+  labs(
+    title = "Sleep time by body weight among mammals.",
+    colour = "Sleep cycle",
+    y = "Ratio of sleep time over awake time",
+    x = "Body weight (kg)"
+  ) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(0.1, 1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.2, 0.5, 1, 2.5, 5)
+  )
+# add the necessary layers
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+msleep |>
+  mutate(sleep_cycle_binary = sleep_cycle > median(sleep_cycle, na.rm = TRUE)) |>
+  ggplot(aes(bodywt, sleep_total / awake)) +
+  theme_minimal() +
+  geom_point(aes(colour = sleep_cycle_binary)) +
+  labs(
+    title = "Sleep time by body weight among mammals.",
+    colour = "Sleep cycle",
+    y = "Ratio of sleep time over awake time",
+    x = "Body weight (kg)"
+  ) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(0.1, 1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.2, 0.5, 1, 2.5, 5)
+  ) +
+  geom_smooth(
+    method = "lm",
+    formula = y ~ x,
+    se = FALSE,
+    linetype = "longdash", 
+    colour = "darkgrey",
+    fill = "grey"
+  ) +
+  scale_colour_brewer(
+    palette = "Dark2",
+    na.value = "grey50",
+    labels = c("Below median", "Above median", "Not available")
+  ) 
+```
+
+### Application Exercise 3
+
+```{r app-ex-3}
+# try on your own before looking at the code provided below
+msleep |>
+  mutate(
+    # this line creates the dichotomous sleep cycle attribute
+    sleep_cycle_binary = sleep_cycle > median(sleep_cycle, na.rm = TRUE)
+  ) |>
+  ggplot(aes(bodywt, sleep_total / awake)) +
+  theme_minimal() +
+  geom_point(
+    aes(), # provide appropriate arguments to map size and colour
+    alpha = 0.5
+  ) + 
+  labs(
+    title = "Sleep time by body weight among mammals.",
+    size = "Sleep cycle (hr)",
+    colour = "Feeding habit", 
+    y = "Ratio of sleep time over awake time",
+    x = "Body weight (kg)"
+  ) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(0.1, 1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.2, 0.5, 1, 2.5, 5)
+  )
+# add the necessary layers
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+msleep |>
+  ggplot(aes(bodywt, sleep_total / awake))+
+  theme_minimal() +
+  geom_point(aes(size = sleep_cycle, colour = vore), alpha = 0.5) +
+  labs(
+    title = "Sleep time by body weight among mammals.",
+    size = "Sleep cycle (hr)",
+    colour = "Feeding habit",
+    y = "Ratio of sleep time over awake time",
+    x = "Body weight (kg)"
+  ) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(0.1, 1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.2, 0.5, 1, 2.5, 5)
+  ) +
+  geom_smooth(
+    method = "lm", 
+    formula = y ~ x,
+    se = FALSE, 
+    linetype = "longdash", 
+    colour = "darkgrey"
+  ) +
+  scale_colour_brewer(
+    palette = "Dark2",
+    na.value = "grey50",
+    labels = c("Canivore", "Herbivore", "Insectivore", "Omnivore", "Not available")
+  )
+```
+
+### Application Exercise 4
+
+```{r app-ex-4}
+# try on your own before looking at the code provided below
+msleep |>
+  filter(!is.na(sleep_cycle)) |>
+  ggplot(aes(bodywt, sleep_total / awake))+
+  theme_minimal() +
+  geom_point(aes(size = sleep_cycle, colour = vore), alpha = 0.5) +
+  labs(
+    title = "Sleep time by body weight among mammals.",
+    size = "Sleep cycle (hr)",
+    colour = "Feeding habit",
+    y = "Ratio of sleep time over awake time",
+    x = "Body weight (kg)"
+  ) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(0.1, 1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.2, 0.5, 1, 2.5, 5)
+  ) +
+  geom_smooth(
+    method = "lm", 
+    formula = y ~ x,
+    se = FALSE, 
+    linetype = "longdash", 
+    colour = "darkgrey"
+  ) +
+  scale_colour_brewer(
+    palette = "Dark2",
+    na.value = "grey50",
+    labels = c("Canivore", "Herbivore", "Insectivore", "Omnivore", "Not available")
+  )
+# add the necessary geom layer for the missing sleep cycle values
+
+
+
+
+
+
+
+```
+
+```{r} 
+p_missing <- msleep |>
+  filter(!is.na(sleep_cycle)) |>
+  ggplot(aes(bodywt, sleep_total / awake)) +
+  theme_minimal() +
+  geom_point(
+    size = 3, shape = 1, alpha = 0.5,
+    data = msleep |> filter(is.na(sleep_cycle)) # data missing sleep cycle
+  ) +
+  geom_point(aes(size = sleep_cycle, colour = vore), alpha = 0.5) +
+  labs(
+    title = "Sleep time by body weight among mammals.",
+    size = "Sleep cycle (hr)",
+    colour = "Feeding habit",
+    y = "Ratio of sleep time over awake time",
+    x = "Body weight (kg)"
+  ) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(0.1, 1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.2, 0.5, 1, 2.5, 5)
+  ) +
+  geom_smooth(
+    method = "lm", 
+    formula = y ~ x,
+    se = FALSE, 
+    linetype = "longdash", 
+    colour = "darkgrey"
+  ) +
+  scale_colour_brewer(
+    palette = "Dark2",
+    na.value = "grey50",
+    labels = c("Canivore", "Herbivore", "Insectivore", "Omnivore", "Not available")
+  ) 
+p_missing
+```
+
+## Exercise 1
+
+```{r}
+# start by getting the subset of data you wish to focus on
+human <- starwars |>
+  filter(species == "Human") |>
+  select(name, skin_color, hair_color, gender)
+# films and starships are nested columns and requires "unnest"ing
+film_and_ships <- starwars |>
+  select(name, films, starships) |>
+  unnest(films, keep_empty = TRUE) |>
+  unnest(starships, keep_empty = TRUE)
+film_year <- data.frame(
+  films = film_and_ships |> distinct(films),
+  year = c(1977, 1980, 1983, 2005, 2015, 1999, 2002)
+)
+starwars_ex <- human |>
+  left_join(film_and_ships, by = "name") |>
+  left_join(film_year, by = "films") 
+glimpse(starwars_ex)
+```
+
+```{r ex-1}
+# complete exercise 1 here
+
+
+
+
+
+
+
+```
+
+## Legends Style and Placement
+### Placing Legends inside the Plot
+
+```{r}
+p_full <- ggplot(msleep, aes(bodywt, sleep_total / awake, colour = vore)) +
+  geom_point(aes(size = sleep_cycle), alpha = 0.5) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.5, 1, 2.5, 5)
+  ) +
+  labs(
+    title = "Sleep time by body weight among mammals.",
+    size = "Sleep cycle (hr)",
+    colour = "Feeding habit",
+    y = "Ratio of sleep time over awake time",
+    x = "Body weight (kg)"
+  ) +
+  geom_smooth(
+    method = "lm", 
+    formula = y ~ x,
+    se = FALSE, 
+    linetype = "longdash", 
+    colour = "darkgrey"
+  ) +
+  scale_colour_brewer(
+    palette = "Dark2", 
+    labels = c("Carnivore", "Herbivore", "Insectivore", 
+               "Omnivore", "Not available"),
+    na.value = "grey50"
+  ) +
+  theme_minimal()
+p_full
+```
+
+```{r}
+p_full +
+  theme(
+    legend.position = c(.95, .95),
+    legend.justification = c(1, 1),
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 6),
+    legend.key.size = unit(3, "pt"), 
+    legend.background = element_rect(fill = "white", colour = NA)
+  )
+```
+
+### Placing Legends in the Margins
+
+```{r}
+p_full +
+  theme(
+    legend.position = "left",
+    legend.box = "horizontal",
+    legend.box.just = "bottom",
+    legend.margin = margin(),
+    legend.justification = c(0, 0)
+  )
+```
+
+### Application Exercise 5
+
+```{r app-ex-5}
+# try on your own before looking at the code provided below
+p_missing # using the object saved above
+
+
+
+
+
+
+
+
+```
+
+```{r}
+p_missing +
+  theme(
+    legend.position = "top",
+    legend.box = "vertical",
+    legend.box.just = "right",
+    legend.margin = margin()
+  )
+```
+
+### Application Exercise 6
+
+```{r app-ex-6}
+# try on your own before looking at the code provided below
+p_missing +
+  scale_colour_brewer(
+    palette = "Dark2", 
+    labels = c("Carnivore", "Herbivore", "Insectivore", 
+               "Omnivore", "Not available"),
+    na.value = "grey50",
+    guide = guide_legend(
+      order = 2,
+      title.position = "top",
+      title.hjust = 0,
+      nrow = 3,
+      byrow = TRUE,
+      override.aes = list(size = 3)
+    )
+  ) +
+  scale_size_continuous(
+    # add an extra dot for missing values
+    
+    
+    
+  ) +
+  theme(
+    legend.position = "top",
+    legend.box = "horizontal",
+    legend.box.just = "top",
+    legend.justification = c(1, 0),
+    legend.margin = margin()
+  )
+```
+
+```{r}
+# try on your own before looking at the code provided below
+p_missing +
+  scale_colour_brewer(
+    palette = "Dark2", 
+    labels = c("Carnivore", "Herbivore", "Insectivore", 
+               "Omnivore", "Not available"),
+    na.value = "grey50",
+    guide = guide_legend(
+      order = 2,
+      title.position = "top",
+      title.hjust = 0,
+      nrow = 3,
+      byrow = TRUE,
+      override.aes = list(size = 3)
+    )
+  ) +
+  scale_size_continuous(
+    # add an extra dot for missing values
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    guide = guide_legend(
+      order = 1,
+      title.position = "top",
+      override.aes = list(
+        shape = c(19, 19, 19, 1)
+      )
+    )
+  ) +
+  theme(
+    legend.position = "top",
+    legend.box = "horizontal",
+    legend.box.just = "top",
+    legend.justification = c(1, 0),
+    legend.margin = margin()
+  )
+```
+
+### Further Text Styling using `ggtext`
+
+```{r}
+p_labelled <- p_missing +
+  scale_colour_brewer(
+    palette = "Dark2", 
+    labels = paste0(
+      "<span style='color:",
+      c(RColorBrewer::brewer.pal(4, "Dark2"), "#7f7f7f"), ";'>",
+      c("Carnivore", "Herbivore", "Insectivore", "Omnivore", "Not available"),
+      "</span>" # you can use HTML in markdown
+    ),
+    na.value = "grey50",
+    guide = guide_legend(
+      order = 2,
+      title.position = "top",
+      title.hjust = 0,
+      byrow = TRUE,
+      override.aes = list(size = 3)
+    )
+  ) +
+  scale_size_continuous(
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    guide = guide_legend(
+      order = 1,
+      title.position = "top",
+      title.hjust = 0,
+      label.position = "right",
+      override.aes = list(shape = c(19, 19, 19, 1))
+    )
+  ) +
+  theme(
+    title = element_text(size = 24),
+    legend.position = "left",
+    legend.box = "vertical",
+    legend.box.just = "left",
+    legend.justification = c(0, 1),
+    legend.margin = margin(),
+    axis.title = element_text(hjust = 0, size = 16),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    legend.text = element_markdown() # element_markdown() available from ggtext
+  )
+p_labelled
+```
+
+
+## Exercise 2
+
+```{r ex-2}
+# complete exercise 2 here
+
+
+
+
+
+
+```
+
+## Fonts and Dimensions
+
+```{r}
+# try different combinations of output dimensions/font sizes/resolutions yourself
+
+```
+
+## Storytelling
+
+### Annotations
+
+```{r}
+p_missing +
+  theme(
+    legend.text = element_markdown(size = 8),
+    legend.title = element_text(size = 10),
+    legend.position = "left",
+    legend.box = "vertical",
+    legend.box.just = "left",
+    legend.justification = c(0, 1),
+    legend.margin = margin(),
+    legend.key.height = unit(0, "pt"),
+    axis.title = element_text(hjust = 0, size = 10),
+    title = element_text(size = 12),
+    plot.caption = element_text(size = 8, colour = "grey50")
+  ) +
+  guides(
+    # same as setting the guides inside scale_* functions
+    size = guide_legend(order = 1), 
+    colour = guide_legend(order = 2)
+  ) +
+  labs(
+    title = "Larger mammals, specially herbivores,\ntend to sleep less, but have longer sleep cycles.",
+    x = "Body weight (kg)",
+    y = "Ratio of sleep time over awake time",
+    size = expression("Sleep cycle hr"^1), # for mathematical expressions
+    colour = "Feeding habit",
+    caption = expression(""^1~"Sleep cycle is the period between REM seep and non-REM sleep.")
+  ) +
+  ## from ggrepel library
+  geom_label_repel(
+		label = c(
+			"An average horse sleeps\nonly 2.7 hours a day!",
+			"Humans sleep 8 hours a day and\nhave a sleep cycle of 1.5 hours on average.\nHope you all have 8 hours of daily sleep.", 
+			"You are more likely to find\na little brown bat in their sleep\nas they sleep 19.9 hours a day."
+		),
+		size = 2,
+		colour = RColorBrewer::brewer.pal(4, "Dark2")[c(2, 4, 3)],
+		data = filter(msleep, name %in% c("Horse", "Human", "Little brown bat")),
+		nudge_x = c(-1.5, -2, 1),
+		nudge_y = c(-.2, -1, -.5),
+		show.legend = FALSE
+	)
+```
+
+### Arranging Multiple Plots
+
+```{r}
+# you can define a common theme to be used multiple times
+theme_full <- theme_minimal() +
+  theme(
+    legend.text = element_markdown(size = 8),
+    legend.title = element_text(size = 10),
+    legend.position = "top",
+    legend.box = "vertical",
+    legend.box.just = "left",
+    legend.justification = c(0, 1),
+    legend.margin = margin(),
+    legend.key.height = unit(0, "pt"),
+    axis.title = element_text(hjust = 0, size = 10),
+    title = element_text(size = 12),
+    plot.caption = element_text(size = 8, colour = "grey50")
+  )
+# creating multipe plots to put together
+full <- ggplot(mapping = aes(bodywt, sleep_total / awake)) +
+  geom_smooth(
+    method = "lm", se = FALSE, linetype = "longdash", colour = "darkgrey",
+    data = msleep
+  ) +
+  geom_point(aes(size = sleep_cycle), alpha = 0.5,
+             data = filter(msleep, !is.na(sleep_cycle))) +
+  geom_point(size = 3, shape = 1, alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, is.na(sleep_cycle))) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.5, 1, 2.5, 5)
+  ) +
+  scale_size_continuous(
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    guide = guide_legend(
+      order = 1,
+      title.position = "top",
+      title.hjust = 0,
+      label.position = "right",
+      override.aes = list(shape = c(19, 19, 19, 1))
+    )
+  ) +
+  labs(
+    title = "Larger mammals, specially herbivores,\ntend to sleep less, but have longer sleep cycles.",
+    x = "Body weight (kg)",
+    y = "Ratio of sleep time over awake time",
+    size = expression("Sleep cycle hr"^1), # for mathematical expressions
+    colour = "Feeding habit",
+    caption = expression(""^1~"Sleep cycle is the period between REM seep and non-REM sleep.")
+  ) +
+  theme_full
+pcarni <- ggplot(mapping = aes(bodywt, sleep_total / awake)) +
+  geom_point(aes(size = sleep_cycle), alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, !is.na(sleep_cycle), vore == "carni")) +
+  geom_point(size = 3, shape = 1, alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, is.na(sleep_cycle), vore == "carni")) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.5, 1, 2.5, 5)
+  ) +
+  scale_size_continuous(
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    guide = guide_legend(
+      order = 1,
+      title.position = "top",
+      override.aes = list(shape = c(19, 19, 19, 1))
+    )
+  ) +
+  theme_full +
+  labs(subtitle = "Carnivores", x = "", y = "")
+pomni <- ggplot(mapping = aes(bodywt, sleep_total / awake)) +
+  geom_point(aes(size = sleep_cycle), alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, !is.na(sleep_cycle), vore == "omni")) +
+  geom_point(size = 3, shape = 1, alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, is.na(sleep_cycle), vore == "omni")) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.5, 1, 2.5, 5)
+  ) +
+  scale_size_continuous(
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    guide = guide_legend(
+      order = 1,
+      title.position = "top",
+      title.hjust = 0,
+      label.position = "right",
+      override.aes = list(shape = c(19, 19, 19, 1))
+    )
+  ) +
+  theme_full +
+  labs(subtitle = "Omnivores", x = "", y = "")
+pinsecti <- ggplot(mapping = aes(bodywt, sleep_total / awake)) +
+  geom_point(aes(size = sleep_cycle), alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, !is.na(sleep_cycle), vore == "insecti")) +
+  geom_point(size = 3, shape = 1, alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, is.na(sleep_cycle), vore == "insecti")) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.5, 1, 2.5, 5)
+  ) +
+  scale_size_continuous(
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    guide = guide_legend(
+      order = 1,
+      title.position = "top",
+      title.hjust = 0,
+      label.position = "right",
+      override.aes = list(shape = c(19, 19, 19, 1))
+    )
+  ) +
+  theme_full +
+  labs(subtitle = "Insectivores", x = "", y = "")
+pherbi <- ggplot(mapping = aes(bodywt, sleep_total / awake)) +
+  geom_point(aes(size = sleep_cycle), alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, !is.na(sleep_cycle), vore == "herbi")) +
+  geom_point(size = 3, shape = 1, alpha = 0.5, show.legend = FALSE,
+             data = filter(msleep, is.na(sleep_cycle), vore == "herbi")) +
+  scale_x_continuous(
+    trans = "log", 
+    breaks = c(1, 10, 100, 1000),
+    labels = scales::label_number(big.mark = ",")
+  ) +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(0.1, 0.5, 1, 2.5, 5)
+  ) +
+  scale_size_continuous(
+    breaks = c(0.5, 1, 1.5, 0.5),
+    labels = c("0.5", "1", "1.5", "Not available"),
+    guide = guide_legend(
+      order = 1,
+      title.position = "top",
+      title.hjust = 0,
+      label.position = "right",
+      override.aes = list(shape = c(19, 19, 19, 1))
+    )
+  ) +
+  theme_full +
+  labs(subtitle = "Herbivores", x = "", y = "")
+
+# patchwork library allows arranging multiple plots
+# see ?`patchwork-package`
+patched <- full + 
+  (pcarni + pomni + pinsecti + pherbi + plot_layout(nrow = 1)) +
+  plot_layout(ncol = 1, heights = c(1, .5))
+
+patched
+ggsave("patched.png", patched, height = 8, width = 8)
+```
+
+## Exercise 3
+
+```{r ex-3}
+# complete exercise 3 here
+
+
+
+
+```
+
