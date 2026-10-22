@@ -1,0 +1,20 @@
+/* colour labels */
+.carni { 
+  color: #1B9E77; 
+}
+.herbi { 
+  color: #D95F02; 
+}
+.insecti { 
+  color: #7570B3; 
+}
+.omni { 
+  color: #E7298A; 
+}
+.missing { 
+  color: #7F7F7F; 
+}
+/* text right alignment */
+.right { 
+  text-align: right; 
+}
