@@ -234,10 +234,12 @@ function(input, output, session) {
           css = "fill-opacity: 0; stroke-opacity: 0; pointer-events: none !important;"
         ),
         opts_hover_key(
-          css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1; stroke: black;"
+          css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1; stroke: black;",
+          reactive = TRUE # send signal to Shiny
         ),
         opts_hover(
-          css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1"
+          css = "fill-opacity: 1; stroke-opacity: 1; stroke-width: 1",
+          reactive = TRUE # send signal to Shiny
         ),
         opts_zoom(min = 1, max = 4),
         opts_toolbar(hidden = c("selection", "misc"))
