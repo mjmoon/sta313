@@ -215,7 +215,7 @@ function(input, output, session) {
         guide = guide_legend(
           order = 2,
           byrow = TRUE,
-          override.aes = list(size = 5, alpha = 0.5)
+          override.aes = list(size = 5, alpha = 0.2)
         )
       )
     girafe(
