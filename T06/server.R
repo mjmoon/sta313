@@ -207,10 +207,10 @@ function(input, output, session) {
       ) +
       scale_colour_manual_interactive(
         # make the legend keys interactive
+        data_id = function(breaks) { as.character(breaks) },
         values = CMAP,
         breaks = VORE_VALUES,
         drop = FALSE,
-        data_id = function(breaks) { as.character(breaks) },
         labels = paste0("<span style='color:", CMAP, ";'>", VORE_LABELS, "</span>"),
         guide = guide_legend(
           order = 2,
