@@ -12,30 +12,31 @@
 library(shiny)
 library(dplyr)
 library(ggplot2)
+library(ggiraph)
 library(ggtext)
 # prepare LABELS --------------------------------------------------------------
-PLOTTITLE <- "Larger mammals, especially herbivores, tend to sleep less, 
+PLOT_TITLE <- "Larger mammals, especially herbivores, tend to sleep less, 
 but have longer sleep cycles."
-XLABEL <- "Body weight (kg)"
-YLABEL <- "Ratio of sleep time over awake time"
-SIZELABEL <- expression("Sleep cycle (hr)"^1)
-COLOURLABEL <- "Feeding habit"
-VOREVALUES <- c("carni", "herbi", "insecti", "omni", "missing")
-VORELABELS <- c("Carnivore", "Herbivore", "Insectivore", "Omnivore", "Not available")
+X_AXIS_TITLE <- "Body weight (kg)"
+Y_AXIS_TITLE <- "Ratio of sleep time over awake time"
+SIZE_LABEL <- expression("Sleep cycle (hr)"^1)
+COLOUR_LABEL <- "Feeding habit"
+VORE_VALUES <- c("carni", "herbi", "insecti", "omni", "missing")
+VORE_LABELS <- c("Carnivore", "Herbivore", "Insectivore", "Omnivore", "Not available")
 
-names(VORELABELS) <- VOREVALUES
+names(VORE_LABELS) <- VORE_VALUES
 # prepare msleep data from ggplot2 --------------------------------------------
 msleep <- msleep |>
   mutate(
     vore = factor(
       if_else(is.na(vore), "missing", vore), 
-      levels = VOREVALUES
+      levels = VORE_VALUES
     )
   )
 
 # prepare BASEPLOT ------------------------------------------------------------
 CMAP <- c(RColorBrewer::brewer.pal(4, "Dark2"), "#7f7f7f")
-names(CMAP) <- VOREVALUES
+names(CMAP) <- VORE_VALUES
 BASETHEME <- theme_minimal() +
   theme(
     legend.text = element_markdown(size = 10),
@@ -74,47 +75,17 @@ BASEPLOT <- msleep |>
     )
   ) +
   labs(
-    title = PLOTTITLE,
-    x = XLABEL,
-    y = YLABEL,
-    size = SIZELABEL, 
-    colour = COLOURLABEL
+    title = PLOT_TITLE,
+    x = X_AXIS_TITLE,
+    y = Y_AXIS_TITLE,
+    size = SIZE_LABEL, 
+    colour = COLOUR_LABEL
   )
 # Define server logic ---------------------------------------------------------
 function(input, output, session) {
   # keep track of feeding habit filter selections
-  vore_selected <- reactiveVal(VOREVALUES)
-  observeEvent(input$ggiraph_plot_key_selected, {
-    # ggiraph plot object name + _key_selected
-    s <- input$ggiraph_plot_key_selected
-    if (is.null(s)) {
-      session$sendCustomMessage("ggiraph_plot_key_set", VOREVALUES)
-      updateCheckboxGroupInput(
-        session,
-        "feeding_filter",
-        selected = VOREVALUES
-      )
-    } else if (!setequal(s, vore_selected())) {
-      updateCheckboxGroupInput(
-        session,
-        "feeding_filter",
-        selected = s
-      )
-    }
-  }, ignoreNULL = FALSE)
-  
-  observeEvent(input$feeding_filter, {
-    s <- input$feeding_filter
-    if (is.null(s)) {
-      updateCheckboxGroupInput(
-        session,
-        "feeding_filter",
-        selected = VOREVALUES
-      )
-    } else {
-      vore_selected(s)
-    }
-  }, ignoreNULL = FALSE)
+  vore_selected <- reactiveVal(VORE_VALUES)
+  # Interaction with Shiny only -----------------------------------------------
   # update data based on the filters
   filtered_data <- reactive({
     msleep |>
@@ -160,7 +131,39 @@ function(input, output, session) {
       input$na_sleep_switch,
       input$highlight_switch
     )
+  # Interaction with ggiraph & Shiny ------------------------------------------
+  # sycn Shiny radio buttons and ggiraph legend buttons
+  observeEvent(input$ggiraph_plot_key_selected, {
+    # ggiraph plot object name + _key_selected
+    s <- input$ggiraph_plot_key_selected
+    if (is.null(s)) {
+      session$sendCustomMessage("ggiraph_plot_key_set", VORE_VALUES)
+      updateCheckboxGroupInput(
+        session,
+        "feeding_filter",
+        selected = VORE_VALUES
+      )
+    } else if (!setequal(s, vore_selected())) {
+      updateCheckboxGroupInput(
+        session,
+        "feeding_filter",
+        selected = s
+      )
+    }
+  }, ignoreNULL = FALSE)
   
+  observeEvent(input$feeding_filter, {
+    s <- input$feeding_filter
+    if (is.null(s)) {
+      updateCheckboxGroupInput(
+        session,
+        "feeding_filter",
+        selected = VORE_VALUES
+      )
+    } else {
+      vore_selected(s)
+    }
+  }, ignoreNULL = FALSE)
   # update selection based on the filters
   # draw all points and hide filtered out points using ggiraph's opacity change
   id_selected <- reactive({
@@ -181,7 +184,7 @@ function(input, output, session) {
     input$ggiraph_plot_selected, 
     session$sendCustomMessage("ggiraph_plot_set", id_selected())
   )
-
+  
   output$ggiraph_plot <- renderGirafe({
     ggiraph_plot <- BASEPLOT +
       geom_point_interactive(
@@ -205,10 +208,10 @@ function(input, output, session) {
       scale_colour_manual_interactive(
         # make the legend keys interactive
         values = CMAP,
-        breaks = VOREVALUES,
+        breaks = VORE_VALUES,
         drop = FALSE,
         data_id = function(breaks) { as.character(breaks) },
-        labels = paste0("<span style='color:", CMAP, ";'>", VORELABELS, "</span>"),
+        labels = paste0("<span style='color:", CMAP, ";'>", VORE_LABELS, "</span>"),
         guide = guide_legend(
           order = 2,
           byrow = TRUE,
@@ -246,6 +249,7 @@ function(input, output, session) {
       )
     )
   })
+  # render ggiraph even when on the other tab
   outputOptions(output, "ggiraph_plot", suspendWhenHidden = FALSE)
   # define reactive items to interact with ggiraph plots
   ggiraph_hover <- reactive({

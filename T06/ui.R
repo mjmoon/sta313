@@ -11,11 +11,10 @@ library(shiny)
 library(bslib)
 library(ggiraph)
 # prepare LABELS --------------------------------------------------------------
-SIZELABEL <- HTML("Sleep cycle (hr)<sup>1</sup>")
-COLOURLABEL <- "Feeding habit"
-MISSINGLABEL <- "Show missing sleep cycle"
-HIGHLIGHTLABEL <- "Show highlights"
-SLEEPCYCLE <- HTML(
+SIZE_SLIDER_LABEL <- HTML("Sleep cycle (hr)<sup>1</sup>")
+COLOUR_CHECKBOX_LABEL <- "Feeding habit"
+MISSING_SWITCH_LABEL <- "Show missing sleep cycle"
+SLEEP_CYCLE_FOOTNOTE <- HTML(
   "<div class='right'><sup>1</sup>Sleep cycle is the length of one REM cycle and one non-REM cycle.</div>"
 )
 # define UI -------------------------------------------------------------------
@@ -24,7 +23,7 @@ page_fluid(
     # add CSS in HTML head
     tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
     tags$script(
-    "
+      "
 document.addEventListener('click', function (e) {
   // ignore clicks on ggiraph data points; legend keys (key-id) still work
   if (e.target.closest('#ggiraph_plot svg [data-id]')) e.stopPropagation();
@@ -39,7 +38,7 @@ document.addEventListener('click', function (e) {
         # filter for feeding habit
         checkboxGroupInput( # grouped checkbox selector; see ?shiny::checkboxGroupInput
           inputId = "feeding_filter",
-          label = COLOURLABEL, 
+          label = COLOUR_CHECKBOX_LABEL, 
           choiceValues = list("carni", "herbi", "insecti", "omni", "missing"),
           choiceNames = list(
             span("Carnivore", class = "carni"),
@@ -53,7 +52,7 @@ document.addEventListener('click', function (e) {
         # filter for sleep cycle
         sliderInput( # slider UI; see ?shiny::sliderInput
           inputId = "sleep_cycle_filter",
-          label = SIZELABEL,
+          label = SIZE_SLIDER_LABEL,
           min = 0,
           max = 1.5,
           step = 0.05,
@@ -62,7 +61,7 @@ document.addEventListener('click', function (e) {
         ),
         input_switch( # switch UI; see ?bslib::input_switch
           id = "na_sleep_switch", 
-          label = MISSINGLABEL,
+          label = MISSING_SWITCH_LABEL,
           value = TRUE
         )
       ),
@@ -75,7 +74,7 @@ document.addEventListener('click', function (e) {
         girafeOutput("ggiraph_plot")
       )
     ),
-    card_footer(SLEEPCYCLE)
+    card_footer(SLEEP_CYCLE_FOOTNOTE)
   ),
   verbatimTextOutput("console")
 )
