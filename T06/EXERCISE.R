@@ -1,6 +1,3 @@
-library(bsli)
-library(ggplot2)
-library(ggrepel)
 # ui --------------------------------------------------------------------------
 input_switch(
   id = "highlight_switch",
