@@ -24,7 +24,6 @@ SIZE_LABEL <- expression("Sleep cycle (hr)"^1)
 COLOUR_LABEL <- "Feeding habit"
 VORE_VALUES <- c("carni", "herbi", "insecti", "omni", "missing")
 VORE_LABELS <- c("Carnivore", "Herbivore", "Insectivore", "Omnivore", "Not available")
-
 names(VORE_LABELS) <- VORE_VALUES
 # prepare msleep data from ggplot2 --------------------------------------------
 msleep <- msleep |>
@@ -133,37 +132,20 @@ function(input, output, session) {
       input$highlight_switch
     )
   # Interaction with ggiraph & Shiny ------------------------------------------
-  # sycn Shiny radio buttons and ggiraph legend buttons
+  # sync Shiny radio buttons and ggiraph legend buttons
   observeEvent(input$ggiraph_plot_key_selected, {
     # ggiraph plot object name + _key_selected
     s <- input$ggiraph_plot_key_selected
     if (is.null(s)) {
-      session$sendCustomMessage("ggiraph_plot_key_set", VORE_VALUES)
-      updateCheckboxGroupInput(
-        session,
-        "feeding_filter",
-        selected = VORE_VALUES
-      )
-    } else if (!setequal(s, vore_selected())) {
-      updateCheckboxGroupInput(
-        session,
-        "feeding_filter",
-        selected = s
-      )
+      s <- character(0)
+    } 
+    if (!setequal(s, vore_selected())) {
+      updateCheckboxGroupInput(session, "feeding_filter", selected = s)
     }
-  }, ignoreNULL = FALSE)
+  }, ignoreNULL = FALSE, ignoreInit = TRUE)
   
   observeEvent(input$feeding_filter, {
-    s <- input$feeding_filter
-    if (is.null(s)) {
-      updateCheckboxGroupInput(
-        session,
-        "feeding_filter",
-        selected = VORE_VALUES
-      )
-    } else {
-      vore_selected(s)
-    }
+    vore_selected(input$feeding_filter)
   }, ignoreNULL = FALSE)
   # update selection based on the filters
   # draw all points and hide filtered out points using ggiraph's opacity change
@@ -179,8 +161,18 @@ function(input, output, session) {
     if (length(ids) == 0) ids <- "__none__"
     ids
   })
-  observe(session$sendCustomMessage("ggiraph_plot_key_set", vore_selected()))
-  observe(session$sendCustomMessage("ggiraph_plot_set", id_selected()))
+  observe(
+    session$sendCustomMessage(
+      "ggiraph_plot_key_set", 
+      as.character(vore_selected())
+    )
+  )
+  observe(
+    session$sendCustomMessage(
+      "ggiraph_plot_set", 
+      as.character(id_selected())
+    )
+  )
   observeEvent(
     input$ggiraph_plot_selected, 
     session$sendCustomMessage("ggiraph_plot_set", id_selected())
