@@ -14,6 +14,7 @@ library(dplyr)
 library(ggplot2)
 library(ggiraph)
 library(ggtext)
+library(ggrepel)
 # prepare LABELS --------------------------------------------------------------
 PLOT_TITLE <- "Larger mammals, especially herbivores, tend to sleep less, 
 but have longer sleep cycles."
